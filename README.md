@@ -10,7 +10,10 @@ In 2000, Enron was one of the largest companies in the United States. By 2002, i
 I need to build machine learning model to identify the POI(Person of Interest) in the dataset.
 
 ## About the File in this repo
-poi_id.py: Main program to identify the POI, comparing the performance with different machine learning way.  
+poi_id.py: Main program to identify the POI, comparing the performance with different machine learning way.
+<b>If you want to run this file in your PC you have to 
+  clone or download the project repo showed at top of the README, then replace the file in the final_project floder. </b> 
+  Also, the Enron Dataset is necessarily.  
 tester.py: Tester file exist in Udacity Project repo which can show the performance of the selected classifier.  
 [my_classifier, my_dataset, my_feature_list]: Dataset which tester.py used it to evalutate the classifier.  
 refer.txt: Reference which I referred in my project.  
