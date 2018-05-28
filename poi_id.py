@@ -2,9 +2,6 @@
 
 import sys
 import pickle
-import matplotlib.pyplot as plt
-sys.path.append("../tools/")
-
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
 from sklearn.metrics import roc_curve, auc
@@ -18,35 +15,34 @@ from sklearn.ensemble import RandomForestClassifier
 import operator
 import time
 import numpy as np
+import pandas as pd
 
-### Task 1: Select what features you'll use.
-### features_list is a list of strings, each of which is a feature name.
-### The first feature must be "poi".
+sys.path.append("../tools/")
 
-money_features = ['salary', 'deferral_payments', 'total_payments', 'loan_advances', \
-                  'bonus', 'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses', \
+# define the features
+money_features = ['salary', 'deferral_payments', 'total_payments', 'loan_advances',
+                  'bonus', 'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses',
                   'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock', 'director_fees']
-mail_features = ['to_messages', 'email_address', 'from_poi_to_this_person', 'from_messages', \
+mail_features = ['to_messages', 'email_address', 'from_poi_to_this_person', 'from_messages',
                  'from_this_person_to_poi', 'shared_receipt_with_poi']
-feature_use = ['salary', 'total_payments', 'bonus', 'deferred_income', 'total_stock_value', 'expenses', \
-               'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock', 'from_poi_to_this_person', \
+feature_use = ['salary', 'total_payments', 'bonus', 'deferred_income', 'total_stock_value', 'expenses',
+               'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock', 'from_poi_to_this_person',
                'from_this_person_to_poi', 'shared_receipt_with_poi']
 
-
-### Load the dictionary containing the dataset
+# Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
     data_dict = pickle.load(data_file)
 
-#analyze the data
+# analyze the data
 print "sum of data =", len(data_dict)
 is_poi = []
 not_poi = []
 feature_nan_dic = dict()
 name_nan_dic = dict()
 for k, v in data_dict.iteritems():
-    if v['poi'] == True:
+    if v['poi'] is True:
         is_poi.append(1)
-    elif v['poi'] == False:
+    elif v['poi'] is False:
         not_poi.append(0)
 
     if len(feature_nan_dic) == 0:
@@ -64,7 +60,7 @@ print name_nan_dic
 print "sum of poi =", len(is_poi)
 print "sum of not poi =", len(not_poi)
 
-###clean the outlier
+# clean the outlier
 data_dict.pop("TOTAL", 0)
 number_of_feature = len(feature_use)
 
@@ -87,7 +83,7 @@ for name in pop_name:
 
 print "Lens of data_dict =", len(data_dict)
 
-### generate new feature data
+# generate new feature data
 new_feature_list = []
 for k,v in data_dict.iteritems():
     if v['from_this_person_to_poi'] == 'NaN' or v['total_stock_value'] == 'NaN':
@@ -102,7 +98,7 @@ data_newfeature = np.zeros((142, 1))
 for i in range(142):
     data_newfeature[i,0] = new_feature_list[i]
 
-### choose feature
+# choose feature
 feature_list_raw = np.array(["poi"] + feature_use)
 data = featureFormat(data_dict, feature_list_raw)
 
@@ -114,8 +110,7 @@ for i in range(142):
 poi, features = targetFeatureSplit(data_test)
 features_train, features_test, poi_train, poi_test = train_test_split(features, poi, test_size=0.2, random_state=42)
 
-
-### test new feature
+# Test new feature
 newfeatures_train, newfeatures_test, newpoi_train, newpoi_test = train_test_split(data_newfeature, poi, test_size=0.2, random_state=42)
 clf_nb_for_new_feature = GaussianNB()
 t0 = time.time()
@@ -138,7 +133,7 @@ rescaled_features_train = scaler.fit_transform(features_train_selected)
 rescaled_features_test = scaler.fit_transform(features_test_selected)
 print selector.scores_
 
-### get the my_features_list for dumping at the bottom of the code
+# get the my_features_list for dumping at the bottom of the code
 score_index = 0
 choose_feature = dict()
 # choose_feature_test = dict(selector.scores_)
@@ -157,11 +152,7 @@ for k, _ in choose_feature_itemgetter:
 
 print my_features_list, "is using"
 
-
-
-
-
-### classifier 1 - GaussianNB
+# classifier 1 - GaussianNB
 clf_nb = GaussianNB()
 t0 = time.time()
 clf_nb.fit(features_train_selected, poi_train)
@@ -169,19 +160,13 @@ print "training time =", round(time.time() - t0, 3), "s"
 score_NB = clf_nb.score(features_test_selected, poi_test)
 print "score =", score_NB, "using GaussianNB"
 
-
-import pandas as pd
-
 preds = clf_nb.predict_proba(features_test_selected)[:, 1]
 fpr, tpr, _ = roc_curve(poi_test, preds)
 
 df = pd.DataFrame(dict(fpr=fpr, tpr=tpr))
 auc = auc(fpr,tpr)
 
-
-
-
-### classifier 2 - DecisionTree but not use
+# classifier 2 - DecisionTree
 parameters_dt = {'max_depth': range(12, 20)}
 clf_decisiontree = GridSearchCV(DecisionTreeClassifier(), parameters_dt, cv=4, scoring='recall')
 clf_decisiontree.fit(features_train_selected, poi_train)
@@ -189,7 +174,7 @@ score_decisiontree = clf_decisiontree.score(features_test_selected, poi_test)
 print "score =", score_decisiontree, "using decision tree"
 print "parameters =", clf_decisiontree.best_params_
 
-### classifier 3 - RandomTree but not use
+# classifier 3 - RandomTree
 parameters_rf = {'max_depth': range(1, 5)}
 clf_randomtree = GridSearchCV(RandomForestClassifier(), parameters_rf)
 clf_randomtree.fit(features_train_selected, poi_train)
@@ -197,7 +182,7 @@ score_randomtree = clf_randomtree.score(features_test_selected, poi_test)
 print "score =", score_randomtree, "using random tree"
 print "parameters =", clf_randomtree.best_params_
 
-### classifier 4 - PCA
+# classifier 4 - PCA
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
 
@@ -214,7 +199,7 @@ print 'Best_estimator = {0}'.format(clf_pca.best_estimator_.get_params())
 score_pca = clf_pca.score(rescaled_features_test, poi_test)
 print "score =", score_pca, "using PCA"
 
-### classifier 5 - SVM
+# classifier 5 - SVM
 parameters_svm = {'kernel': ['rbf', 'linear'], 'C': [1, 10, 100], 'gamma': [0.0005, 0.001, 0.005]}
 svc = svm.SVC()
 clf_svm = GridSearchCV(svc, parameters_svm, cv=5, scoring='recall')
@@ -225,30 +210,13 @@ score_svm = clf_svm.score(rescaled_features_test, poi_test)
 print "score =", score_svm, "using svm"
 print "parameters =", clf_svm.best_params_
 
-### Task 2: Remove outliers
-
-### Task 3: Create new feature(s)
-### Store to my_dataset for easy export below.
+# Store to my_dataset for easy export below.
 my_dataset = data_dict
 
-### Extract features and labels from dataset for local testing
+# Extract features and labels from dataset for local testing
 data = featureFormat(my_dataset, my_features_list, sort_keys=True)
 
-### Task 4: Try a varity of classifiers
-### Please name your classifier clf for easy export below.
-### Note that if you want to do PCA or other multi-stage operations,
-### you'll need to use Pipelines. For more info:
-### http://scikit-learn.org/stable/modules/pipeline.html
-
-### Task 5: Tune your classifier to achieve better than .3 precision and recall
-### using our testing script. Check the tester.py script in the final project
-### folder for details on the evaluation method, especially the test_classifier
-### function. Because of the small size of the dataset, the script uses
-### stratified shuffle split cross validation. For more info:
-### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
-# Example starting point. Try investigating other evaluation techniques!
-
-
+# Use KFold method to cross check the classifier
 t0 = time.time()
 from sklearn.model_selection import KFold
 kf = KFold(4, shuffle=True)
@@ -256,7 +224,7 @@ score_kf = []
 accuracy_kf = []
 
 for train_indices, test_indices in kf.split(features):
-    #make training and testing datasets
+    # make training and testing dataset
     features_train = [features[ii] for ii in train_indices]
     features_test = [features[ii] for ii in test_indices]
     poi_train = [poi[ii] for ii in train_indices]
@@ -267,9 +235,6 @@ for train_indices, test_indices in kf.split(features):
 
     features_train_selected = selector.transform(features_train)
     features_test_selected = selector.transform(features_test)
-
-    # features_train_transformed = selector.transform(features_train)
-    # features_test_transformed = selector.transform(features_test)
 
     t0 = time.time()
     clf_nb.fit(features_train_selected, poi_train)
@@ -282,13 +247,8 @@ for train_indices, test_indices in kf.split(features):
     accu = accuracy_score(poi_test, pred_nb)
     accuracy_kf.append(accu)
 
-
 print "score =", 1.0 * sum(score_kf)/len(score_kf)
 print "accuracy =", 1.0 * sum(accuracy_kf)/len(accuracy_kf)
 
-### Task 6: Dump your classifier, dataset, and features_list so anyone can
-### check your results. You do not need to change anything below, but make sure
-### that the version of poi_id.py that you submit can be run on its own and
-### generates the necessary .pkl files for validating your results.
-
+# Dump my classifier
 dump_classifier_and_data(clf_nb, my_dataset, my_features_list)
